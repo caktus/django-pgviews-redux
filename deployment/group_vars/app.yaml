@@ -1,0 +1,6 @@
+# Ansible group variables for the app servers.
+
+# Hostname used to construct the SOCKS5 proxy URL for database tunnelling via chisel.
+# When running locally the proxy is on localhost; in this deployment environment
+# the chisel server runs as the "chisel-server" container / service.
+socks_proxy_host: chisel-server

@@ -1,0 +1,51 @@
+services:
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      # SOCKS proxy hostname for tunnelled database connections via chisel.
+      # Defaults to "localhost" for local development; set to "chisel-server" in
+      # deployment (see deployment/group_vars/app.yaml).
+      SOCKS_PROXY_HOST: "${SOCKS_PROXY_HOST:-localhost}"
+    volumes:
+      # Named volume for persistent writable data; the app user owns /data in the image.
+      - app_data:/data
+      # Mount the chisel auth file read-only so the app can locate it if needed.
+      # Copy chisel_authfile.json.example to chisel_authfile.json and populate it
+      # with credentials before starting this service.
+      - ./chisel_authfile.json:/run/secrets/chisel_authfile.json:ro
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: django_pgviews
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  chisel-server:
+    image: jpillora/chisel
+    command: >
+      server
+        --authfile /run/secrets/chisel_authfile.json
+        --socks5
+        --port 8080
+    volumes:
+      # Mount the auth file read-only.  The jpillora/chisel image runs as a non-root
+      # user, so the file must be world-readable (mode 644) on the host.
+      # Copy chisel_authfile.json.example to chisel_authfile.json and populate it
+      # with credentials before starting this service.
+      - ./chisel_authfile.json:/run/secrets/chisel_authfile.json:ro
+    ports:
+      - "8080:8080"
+
+volumes:
+  app_data:

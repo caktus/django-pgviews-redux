@@ -58,3 +58,5 @@ pip-wheel-metadata
 
 poetry.lock
 
+# Chisel auth file - contains credentials, never commit
+chisel_authfile.json
